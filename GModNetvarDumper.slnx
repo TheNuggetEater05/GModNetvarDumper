@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="GModNetvarDumper.vcxproj" Id="19cdf382-1eba-4c38-81a5-d29863e5dd2d" />
+</Solution>

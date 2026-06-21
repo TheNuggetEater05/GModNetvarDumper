@@ -1,5 +1,14 @@
 # GModNetvarDumper
 
+A little project I'm working on while learning to reverse source engine.
+
+Code is messy and all over the place. I'm trying my best to get things down correctly.
+
+**GModNetvarDumper in use:**
+<img width="1841/2" height="790/2" alt="Screenshot 2026-06-21 040023" src="https://github.com/user-attachments/assets/79b885d0-dce4-448e-9905-8efe6ec229a9" />
+
+
+**Example of a generated class:**
 ```c++
 namespace CBaseAnimating
 {

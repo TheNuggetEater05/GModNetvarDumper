@@ -47,7 +47,7 @@ namespace I
 			return;
 		}
 
-		m_Logger->Log("%s: found module base @ 0x%p", m_ModuleName.c_str(), m_ModuleBase);
+		//m_Logger->Log("%s: found module base @ 0x%p", m_ModuleName.c_str(), m_ModuleBase);
 
 		uint8_t* pCreateInterfaceFn = reinterpret_cast<uint8_t*>(GetProcAddress(m_ModuleBase, "CreateInterface"));
 
@@ -56,7 +56,7 @@ namespace I
 
 		m_pIntHead = *reinterpret_cast<InterfaceNode**>(instruction + 7 + displ);
 
-		m_Logger->Log("%s: found first InterfaceNode @ 0x%p", m_ModuleName.c_str(), (uintptr_t)m_pIntHead);
+		//m_Logger->Log("%s: found first InterfaceNode @ 0x%p", m_ModuleName.c_str(), (uintptr_t)m_pIntHead);
 
 		// DumpAll();
 	}

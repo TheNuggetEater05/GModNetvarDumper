@@ -1,6 +1,8 @@
 #include "Globals.h"
 #include <fstream>
 
+#include "test.h"
+
 void Exit(int exitCode = 0)
 {
     g_pLogger->Log(LOG_SUCCESS, "Module unloaded");
@@ -10,63 +12,63 @@ void Exit(int exitCode = 0)
     FreeLibraryAndExitThread(g_hModule, exitCode);
 }
 
-void DumpTable(std::ofstream& file, RecvTable* recvTable, const char* prev = "")
+void DumpForwards(std::ofstream& file)
+{
+    for (ClientClass* clientClass = I::Client->GetAllClasses(); clientClass; clientClass = clientClass->m_pNext)
+    {
+        RecvTable* table = clientClass->m_pRecvTable;
+        const char* netTableName = table->m_pNetTableName;
+
+        file << "struct " << netTableName << ";\n";
+    }
+
+    file << "\n\n\n";
+}
+
+void DumpTable(std::ofstream& file, RecvTable* recvTable, const std::string& parent = "")
 {
     if (!recvTable)
         return;
 
     int numProps = recvTable->m_nProps;
+
     for (int i = 0; i < numProps; i++)
     {
         RecvProp* prop = &recvTable->m_pProps[i];
 
-        if (!prop)
+        if (prop->m_pDataTable && strncmp(prop->m_pDataTable->m_pNetTableName, "m_", 2) != 0)
+        {
+            file << "\n\tDERIVES_FROM " << prop->m_pDataTable->m_pNetTableName << ";";
             continue;
-
-        RecvTable* datatableProp = prop->m_pDataTable;
-        RecvProp* arrayProp = prop->m_pArrayProp;
-
-        std::string varName(prop->m_pVarName);
-        if (varName.find("baseclass") == 0 || varName.find("0") == 0 || varName.find("1") == 0 || varName.find("2") == 0)
-            continue;
-
-        size_t pos;
-        while ((pos = varName.find(".")) != std::string::npos)
-        {
-            varName.replace(pos, 1, "__");
         }
-        while ((pos = varName.find("[")) != std::string::npos)
-        {
-            varName.replace(pos, 1, "__");
-        }
-        while ((pos = varName.find("]")) != std::string::npos)
-        {
-            varName.replace(pos, 1, "");
-        }
-        while ((pos = varName.find(" ")) != std::string::npos)
-        {
-            varName.replace(pos, 1, "");
-        }
-        while ((pos = varName.find("\"")) != std::string::npos)
-        {
-            varName.replace(pos, 1, "");
-        }
-        
-        file << "\tconstexpr std::ptrdiff_t ";
-        if (prev != "")
-            file << prev << "__";
 
-        file << varName << " = " << "0x" << std::hex << prop->m_Offset << std::dec << ";";
+        std::string varName = prop->m_pVarName;
 
-        if (datatableProp)
-            file << " // DATATABLE ";
-        if (arrayProp)
-            file << " // ARRAY";
+        for (char& c : varName)
+        {
+            if (c == '.')
+                c = '_';
 
-        file << "\n";
+            if (c == '[')
+                c = '_';
+        }
 
-        if (prop->m_pDataTable)
-            DumpTable(file, prop->m_pDataTable, prop->m_pVarName);
+        varName.erase(
+            std::remove(varName.begin(), varName.end(), ']'),
+            varName.end()
+        );
+
+        varName.erase(
+            std::remove(varName.begin(), varName.end(), '"'),
+            varName.end()
+        );
+
+        varName.erase(
+            std::remove(varName.begin(), varName.end(), ' '),
+            varName.end()
+        );
+
+        file << "\n\tOFFSET " << varName << " = " << std::hex << "0x" << prop->m_Offset << std::dec << ";";
     }
 }
 
@@ -81,25 +83,65 @@ void Main(HMODULE hMod)
 
     I::Initialize();
 
-    std::ofstream file("C:\\Users\\Public\\netvar_dump.h");
+    bool forwardDeclared = false;
+    std::ofstream netvarDump("C:\\Users\\Public\\netvars.h");
 
-    file << "#pragma once\n"
-        << "#include <cstddef>\n"
-        << "\n\n\n// GModNetvarDumper\n\n\n";
+    netvarDump
+        << "// Generated with github.com/TheNuggetEater05/GModNetvarDumper/\n\n"
+        << "#define OFFSET constexpr static std::ptrdiff_t\n\n"
+        << "#define DERIVES_FROM using parent = \n\n"
+        << "#include <cstddef>\n\n\n"
+        << "namespace DT\n"
+        << "{\n"
+        << "struct DT_GMODRules;\n"
+        << "struct DT_ScriptedEntity;\n"
+        << "struct DT_LocalActiveWeaponData;\n"
+        << "struct DT_LocalWeaponData;\n"
+        << "struct DT_ServerAnimationData;\n"
+        << "struct DT_BeamPredictableId;\n"
+        << "struct DT_OverlayVars;\n"
+        << "struct DT_BCCLocalPlayerExclusive;\n"
+        << "struct DT_PredictableId;\n"
+        << "struct DT_CollisionProperty;\n"
+        << "struct DT_AnimTimeMustBeFirst;\n"
+        << "struct DT_LocalPlayerExclusive;\n"
+        << "struct DT_PlayerState;\n"
+        << "struct DT_EntityParticleTrailInfo;\n"
+        << "struct _ST_m_hActorList_16;\n"
+        << "struct DT_HL2Local;\n"
+        << "struct DT_EnvHeadcrabCanisterShared;\n"
+        << "struct DT_HL2MPLocalPlayerExclusive;\n"
+        << "struct DT_HL2MPNonLocalPlayerExclusive;\n"
+        << "struct DT_HL2MPRules;\n"
+        << "struct DT_EnvWindShared;\n"
+        << "struct DT_EffectData;\n";
 
     for (ClientClass* clientClass = I::Client->GetAllClasses(); clientClass; clientClass = clientClass->m_pNext)
     {
-        file << "namespace " << clientClass->m_pNetworkName << "\n"
-            << "{\n";
+        if (!forwardDeclared)
+        {
+            DumpForwards(netvarDump);
+            forwardDeclared = true;
+        }
 
-        DumpTable(file, clientClass->m_pRecvTable);
+        RecvTable* table = clientClass->m_pRecvTable;
+        const char* netTableName = table->m_pNetTableName;
 
-        file << "}; // " << clientClass->m_pNetworkName << "\n";
+        netvarDump
+            << "struct " << netTableName << "\n"
+            << "{";
+        DumpTable(netvarDump, table);
+        netvarDump << "\n}; // " << netTableName << "\n\n";
     }
 
-    file.close();
+    netvarDump << "};";
 
-    g_pLogger->Log(LOG_SUCCESS, "Successfully dumped netvars to C:\\Users\\Public\\netvar_dump.h");
+    netvarDump.close();
+
+    // testing
+
+    DT::DT_BasePlayer a;
+    
 
     while (!GetAsyncKeyState(VK_END))
         Sleep(10);

@@ -158,6 +158,7 @@
     <ClInclude Include="Interfaces\IClientEntityList.h" />
     <ClInclude Include="Interfaces\Interfaces.h" />
     <ClInclude Include="Interfaces\Netvars.hpp" />
+    <ClInclude Include="test.h" />
     <ClInclude Include="Utility\Logger\Logger.hpp" />
     <ClInclude Include="Utility\Singleton.hpp" />
     <ClInclude Include="Utility\VTables.hpp" />
